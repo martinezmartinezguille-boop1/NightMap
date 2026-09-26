@@ -1,0 +1,244 @@
+import type { Place } from "../../types/place";
+import { listClaims } from "@/lib/venueClaims";
+
+export type OfferKind = "guestlist" | "twoForOne" | "earlyBird";
+
+export interface FlashDeal {
+  id: string;
+  placeId: string;
+  clubTitle: string;
+  city: string;
+  kind: OfferKind;
+  detail: string;
+  endsAt: number;
+}
+
+const DEALS_KEY = "nightmap-flash-deals";
+const SUBS_KEY = "nightmap-subscriptions";
+
+const KIND_LABEL: Record<OfferKind, string> = {
+  guestlist: "Lista gratis",
+  twoForOne: "2x1 en copas",
+  earlyBird: "Descuento anticipada",
+};
+
+/** Salas con verificación simulada. Una reclamación aprobada también verifica el local. */
+const VERIFIED_TITLES = ["tiffany", "lula club", "moog barcelona", "pacha sitges", "sala gold", "row 14"];
+
+interface SeedDeal {
+  id: string;
+  title: string;
+  city: string;
+  kind: OfferKind;
+  detail: string;
+  endsInMs: number;
+}
+
+const SEEDS: readonly SeedDeal[] = [
+  {
+    id: "seed-lula",
+    title: "Lula Club",
+    city: "Madrid",
+    kind: "guestlist",
+    detail: "Lista gratis si llegas antes de la 1:00.",
+    endsInMs: 45 * 60 * 1000,
+  },
+  {
+    id: "seed-tiffany",
+    title: "Tiffany's The Club",
+    city: "Madrid",
+    kind: "twoForOne",
+    detail: "2x1 en copas en la primera hora de pista.",
+    endsInMs: 28 * 60 * 1000,
+  },
+  {
+    id: "seed-moog",
+    title: "Moog Barcelona",
+    city: "Barcelona",
+    kind: "earlyBird",
+    detail: "Entrada anticipada con un 30% menos.",
+    endsInMs: 2 * 60 * 60 * 1000,
+  },
+  {
+    id: "seed-pacha",
+    title: "Pacha Sitges",
+    city: "Sitges",
+    kind: "guestlist",
+    detail: "Lista gratis de terraza hasta las 00:30.",
+    endsInMs: 70 * 60 * 1000,
+  },
+  {
+    id: "seed-gold",
+    title: "Sala Gold",
+    city: "Málaga",
+    kind: "twoForOne",
+    detail: "2x1 en combinados de barra central.",
+    endsInMs: 18 * 60 * 1000,
+  },
+  {
+    id: "seed-row",
+    title: "Row 14",
+    city: "Viladecans",
+    kind: "earlyBird",
+    detail: "Descuento anticipada en taquilla online.",
+    endsInMs: 3 * 60 * 60 * 1000,
+  },
+];
+
+export function offerKindLabel(kind: OfferKind): string {
+  return KIND_LABEL[kind];
+}
+
+export function offerActionLabel(kind: OfferKind): string {
+  if (kind === "guestlist") return "Apuntarme a la lista";
+  if (kind === "twoForOne") return "Canjear 2x1";
+  return "Usar descuento";
+}
+
+export function formatCountdown(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+}
+
+function normalize(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function pickPlace(places: readonly Place[], title: string, city: string): Place | undefined {
+  const want = normalize(title);
+  const wantCity = normalize(city);
+  let best: Place | undefined;
+  let bestScore = -1;
+  for (const place of places) {
+    const name = normalize(place.title);
+    const placeCity = normalize(place.city ?? "");
+    if (!name.includes(want) && !want.includes(name)) continue;
+    const cityHit = !wantCity || !placeCity || placeCity.includes(wantCity) || wantCity.includes(placeCity);
+    if (!cityHit && name !== want) continue;
+    let score = name === want ? 10 : 4;
+    if (cityHit) score += 3;
+    if (!place.placeId.startsWith("osm:")) score += 2;
+    if (score > bestScore) {
+      best = place;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
+export function isVenueVerified(place: Pick<Place, "placeId" | "title">): boolean {
+  const title = normalize(place.title);
+  if (VERIFIED_TITLES.some((marker) => title.includes(marker))) return true;
+  return listClaims().some((claim) => claim.status === "approved" && claim.placeId === place.placeId);
+}
+
+export function searchVenues(places: readonly Place[], query: string): Place[] {
+  const needle = normalize(query);
+  if (needle.length < 2) return [];
+  const hits: Place[] = [];
+  for (const place of places) {
+    if (!normalize(place.title).includes(needle)) continue;
+    hits.push(place);
+    if (hits.length >= 24) break;
+  }
+  hits.sort((a, b) => venueScore(b, needle) - venueScore(a, needle));
+  return hits.slice(0, 6);
+}
+
+function venueScore(place: Place, needle: string): number {
+  const name = normalize(place.title);
+  let score = name === needle ? 10 : 1;
+  if (!place.placeId.startsWith("osm:")) score += 2;
+  return score;
+}
+
+export function seedFlashDeals(places: readonly Place[], now: number): FlashDeal[] {
+  const deals: FlashDeal[] = [];
+  for (const seed of SEEDS) {
+    const place = pickPlace(places, seed.title, seed.city);
+    if (!place) continue;
+    deals.push({
+      id: seed.id,
+      placeId: place.placeId,
+      clubTitle: place.title,
+      city: place.city ?? seed.city,
+      kind: seed.kind,
+      detail: seed.detail,
+      endsAt: now + seed.endsInMs,
+    });
+  }
+  return deals;
+}
+
+function readDeals(): FlashDeal[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(DEALS_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isFlashDeal);
+  } catch {
+    return [];
+  }
+}
+
+function isFlashDeal(value: unknown): value is FlashDeal {
+  if (!value || typeof value !== "object") return false;
+  const row = value as Record<string, unknown>;
+  return (
+    typeof row["id"] === "string" &&
+    typeof row["placeId"] === "string" &&
+    typeof row["clubTitle"] === "string" &&
+    typeof row["city"] === "string" &&
+    (row["kind"] === "guestlist" || row["kind"] === "twoForOne" || row["kind"] === "earlyBird") &&
+    typeof row["detail"] === "string" &&
+    typeof row["endsAt"] === "number"
+  );
+}
+
+export function listPublishedDeals(): FlashDeal[] {
+  return readDeals().sort((a, b) => a.endsAt - b.endsAt);
+}
+
+export function publishDeal(input: Omit<FlashDeal, "id">): FlashDeal {
+  const deal: FlashDeal = { ...input, id: crypto.randomUUID() };
+  window.localStorage.setItem(DEALS_KEY, JSON.stringify([deal, ...readDeals()]));
+  window.dispatchEvent(new Event("nightmap-flash-deals"));
+  return deal;
+}
+
+function readSubscriptions(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(SUBS_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((id): id is string => typeof id === "string" && id.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+export function listSubscriptions(): string[] {
+  return readSubscriptions();
+}
+
+export function toggleSubscription(placeId: string): boolean {
+  const ids = readSubscriptions();
+  const active = ids.includes(placeId);
+  const next = active ? ids.filter((id) => id !== placeId) : [placeId, ...ids];
+  window.localStorage.setItem(SUBS_KEY, JSON.stringify(next));
+  window.dispatchEvent(new Event("nightmap-subscriptions"));
+  return !active;
+}

@@ -1,0 +1,1 @@
+DROP POLICY "Carga inicial temporal" ON public.discotecas;
