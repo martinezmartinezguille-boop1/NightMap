@@ -22,69 +22,6 @@ const KIND_LABEL: Record<OfferKind, string> = {
   earlyBird: "Descuento anticipada",
 };
 
-/** Salas con verificación simulada. Una reclamación aprobada también verifica el local. */
-const VERIFIED_TITLES = ["tiffany", "lula club", "moog barcelona", "pacha sitges", "sala gold", "row 14"];
-
-interface SeedDeal {
-  id: string;
-  title: string;
-  city: string;
-  kind: OfferKind;
-  detail: string;
-  endsInMs: number;
-}
-
-const SEEDS: readonly SeedDeal[] = [
-  {
-    id: "seed-lula",
-    title: "Lula Club",
-    city: "Madrid",
-    kind: "guestlist",
-    detail: "Lista gratis si llegas antes de la 1:00.",
-    endsInMs: 45 * 60 * 1000,
-  },
-  {
-    id: "seed-tiffany",
-    title: "Tiffany's The Club",
-    city: "Madrid",
-    kind: "twoForOne",
-    detail: "2x1 en copas en la primera hora de pista.",
-    endsInMs: 28 * 60 * 1000,
-  },
-  {
-    id: "seed-moog",
-    title: "Moog Barcelona",
-    city: "Barcelona",
-    kind: "earlyBird",
-    detail: "Entrada anticipada con un 30% menos.",
-    endsInMs: 2 * 60 * 60 * 1000,
-  },
-  {
-    id: "seed-pacha",
-    title: "Pacha Sitges",
-    city: "Sitges",
-    kind: "guestlist",
-    detail: "Lista gratis de terraza hasta las 00:30.",
-    endsInMs: 70 * 60 * 1000,
-  },
-  {
-    id: "seed-gold",
-    title: "Sala Gold",
-    city: "Málaga",
-    kind: "twoForOne",
-    detail: "2x1 en combinados de barra central.",
-    endsInMs: 18 * 60 * 1000,
-  },
-  {
-    id: "seed-row",
-    title: "Row 14",
-    city: "Viladecans",
-    kind: "earlyBird",
-    detail: "Descuento anticipada en taquilla online.",
-    endsInMs: 3 * 60 * 60 * 1000,
-  },
-];
-
 export function offerKindLabel(kind: OfferKind): string {
   return KIND_LABEL[kind];
 }
@@ -113,31 +50,7 @@ function normalize(value: string): string {
     .trim();
 }
 
-function pickPlace(places: readonly Place[], title: string, city: string): Place | undefined {
-  const want = normalize(title);
-  const wantCity = normalize(city);
-  let best: Place | undefined;
-  let bestScore = -1;
-  for (const place of places) {
-    const name = normalize(place.title);
-    const placeCity = normalize(place.city ?? "");
-    if (!name.includes(want) && !want.includes(name)) continue;
-    const cityHit = !wantCity || !placeCity || placeCity.includes(wantCity) || wantCity.includes(placeCity);
-    if (!cityHit && name !== want) continue;
-    let score = name === want ? 10 : 4;
-    if (cityHit) score += 3;
-    if (!place.placeId.startsWith("osm:")) score += 2;
-    if (score > bestScore) {
-      best = place;
-      bestScore = score;
-    }
-  }
-  return best;
-}
-
 export function isVenueVerified(place: Pick<Place, "placeId" | "title">): boolean {
-  const title = normalize(place.title);
-  if (VERIFIED_TITLES.some((marker) => title.includes(marker))) return true;
   return listClaims().some((claim) => claim.status === "approved" && claim.placeId === place.placeId);
 }
 
@@ -159,24 +72,6 @@ function venueScore(place: Place, needle: string): number {
   let score = name === needle ? 10 : 1;
   if (!place.placeId.startsWith("osm:")) score += 2;
   return score;
-}
-
-export function seedFlashDeals(places: readonly Place[], now: number): FlashDeal[] {
-  const deals: FlashDeal[] = [];
-  for (const seed of SEEDS) {
-    const place = pickPlace(places, seed.title, seed.city);
-    if (!place) continue;
-    deals.push({
-      id: seed.id,
-      placeId: place.placeId,
-      clubTitle: place.title,
-      city: place.city ?? seed.city,
-      kind: seed.kind,
-      detail: seed.detail,
-      endsAt: now + seed.endsInMs,
-    });
-  }
-  return deals;
 }
 
 function readDeals(): FlashDeal[] {

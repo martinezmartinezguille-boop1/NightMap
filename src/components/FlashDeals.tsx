@@ -10,7 +10,6 @@ import {
   offerKindLabel,
   publishDeal,
   searchVenues,
-  seedFlashDeals,
   toggleSubscription,
   type FlashDeal,
   type OfferKind,
@@ -33,7 +32,6 @@ interface FlashDealsProps {
 export function FlashDeals({ places, onClose, onSelect }: FlashDealsProps) {
   const favorites = useFavorites();
   const [now, setNow] = useState(() => Date.now());
-  const [seedAt] = useState(() => Date.now());
   const [published, setPublished] = useState<FlashDeal[]>(() => listPublishedDeals());
   const [subscriptions, setSubscriptions] = useState<string[]>(() => listSubscriptions());
   const [filter, setFilter] = useState<DealFilter>("all");
@@ -62,7 +60,7 @@ export function FlashDeals({ places, onClose, onSelect }: FlashDealsProps) {
   }, [onClose]);
 
   const deals = useMemo(() => {
-    const active = [...published, ...seedFlashDeals(places, seedAt)].filter((deal) => deal.endsAt > now);
+    const active = published.filter((deal) => deal.endsAt > now);
     const favoriteSet = new Set(favorites.ids);
     const subscriptionSet = new Set(subscriptions);
     const visible =
@@ -72,7 +70,7 @@ export function FlashDeals({ places, onClose, onSelect }: FlashDealsProps) {
           ? active.filter((deal) => subscriptionSet.has(deal.placeId))
           : active;
     return visible.sort((a, b) => a.endsAt - b.endsAt);
-  }, [published, places, seedAt, now, filter, favorites.ids, subscriptions]);
+  }, [published, now, filter, favorites.ids, subscriptions]);
 
   const placeById = useMemo(() => {
     const map = new Map<string, Place>();

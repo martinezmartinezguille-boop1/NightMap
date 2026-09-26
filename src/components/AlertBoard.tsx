@@ -3,12 +3,10 @@ import type { Place } from "../../types/place";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import {
   BASE_ALERTS,
-  LIVE_ALERTS,
   alertKindLabel,
   formatAlertAge,
   resolveAlerts,
   type AlertKind,
-  type AlertTemplate,
   type VenueAlert,
 } from "@/lib/venueAlerts";
 import { Clock, Megaphone, Package, Users, X } from "lucide-react";
@@ -23,11 +21,6 @@ interface AlertBoardProps {
 
 type BoardFilter = "all" | "favorites";
 
-interface LiveNotice {
-  template: AlertTemplate;
-  postedAt: number;
-}
-
 const KIND_ICON = {
   lost: Package,
   capacity: Users,
@@ -37,33 +30,13 @@ const KIND_ICON = {
 export function AlertBoard({ places, favoriteIds, onToggleFavorite, onSelect, onClose }: AlertBoardProps) {
   const [filter, setFilter] = useState<BoardFilter>("all");
   const [now, setNow] = useState(() => Date.now());
-  const [live, setLive] = useState<LiveNotice[]>([]);
 
   useEffect(() => {
     const clock = window.setInterval(() => setNow(Date.now()), 15000);
-    const feed = window.setInterval(() => {
-      setLive((current) => {
-        const template = LIVE_ALERTS[current.length % LIVE_ALERTS.length];
-        if (!template) return current;
-        const notice: LiveNotice = {
-          template: { ...template, id: `${template.id}-${Date.now()}`, minutesAgo: 0 },
-          postedAt: Date.now(),
-        };
-        return [notice, ...current].slice(0, LIVE_ALERTS.length);
-      });
-      setNow(Date.now());
-    }, 12000);
-    return () => {
-      window.clearInterval(clock);
-      window.clearInterval(feed);
-    };
+    return () => window.clearInterval(clock);
   }, []);
 
-  const alerts = useMemo(() => {
-    const base = resolveAlerts(places, BASE_ALERTS, now);
-    const extras = live.flatMap((notice) => resolveAlerts(places, [notice.template], notice.postedAt));
-    return [...extras, ...base].sort((a, b) => b.postedAt - a.postedAt);
-  }, [places, live, now]);
+  const alerts = useMemo(() => resolveAlerts(places, BASE_ALERTS, now), [places, now]);
 
   const favoriteSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
   const visible = filter === "favorites" ? alerts.filter((alert) => favoriteSet.has(alert.place.placeId)) : alerts;
