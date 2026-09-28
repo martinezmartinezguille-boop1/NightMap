@@ -5,6 +5,7 @@ import { CheckInButton } from "@/components/PartyPassport";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { X, MapPin, Phone, Star, Navigation, Globe } from "lucide-react";
 import fallbackImg from "@/assets/club-house.jpg";
+import { nomineeCommunity } from "@/lib/nominees";
 
 interface ClubSidebarProps {
   club: Place;
@@ -62,9 +63,12 @@ export function ClubSidebar({ club, distanceLabel, favorite, onToggleFavorite, o
               {club.categoryName}
             </span>
           )}
-          <h2 className="mt-2 font-display text-2xl font-bold text-foreground text-glow">
+          <h2 className={`mt-2 font-display text-2xl font-bold text-glow ${nomineeCommunity(club) ? "text-[#FFD700]" : "text-foreground"}`}>
             {club.title}
           </h2>
+          {nomineeCommunity(club) && (
+            <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#FFD700]">{nomineeCommunity(club)}</p>
+          )}
           {club.address && (
             <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
               <MapPin className="h-3.5 w-3.5 shrink-0 text-neon" />

@@ -3,7 +3,8 @@ import type { Place } from "../../types/place";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { CheckInButton } from "@/components/PartyPassport";
 import { X, MapPin, Star, Globe, PanelRightOpen } from "lucide-react";
-import fallbackImg from "@/assets/club-techno.jpg";
+import { nomineeCommunity } from "@/lib/nominees";
+import fallbackImg from "@/assets/club-house.jpg";
 
 interface ClubPopupCardProps {
   club: Place;
@@ -70,7 +71,12 @@ export function ClubPopupCard({
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h3 className="font-display text-lg font-bold text-foreground">{club.title}</h3>
+            <h3 className={`font-display text-lg font-bold ${nomineeCommunity(club) ? "text-[#FFD700]" : "text-foreground"}`}>
+              {club.title}
+            </h3>
+            {nomineeCommunity(club) && (
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#FFD700]">{nomineeCommunity(club)}</p>
+            )}
             <p className="text-sm text-muted-foreground">{club.city}</p>
           </div>
           {club.totalScore != null && (

@@ -1,4 +1,5 @@
 import dataset from "../../dataset_crawler-google-places_2026-09-23_12-44-36-823.json";
+import nominatedVenues from "../../nominated-venues.json";
 import { supabase } from "@/integrations/supabase/client";
 import type { OpeningHour, Place, ReviewDistribution } from "../../types/place";
 import { applyFeaturedClubs } from "./featuredClubs2026";
@@ -9,7 +10,7 @@ const DEFAULT_PAGE_SIZE = 1000;
  * Añade aquí más imports JSON y mételos en el array para fusionarlos con el resto.
  * Los duplicados se descartan por `placeId` (gana el primero).
  */
-export const jsonDatasets: readonly unknown[] = [dataset];
+export const jsonDatasets: readonly unknown[] = [dataset, nominatedVenues];
 
 function asNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -133,6 +134,61 @@ export function toPlace(value: unknown): Place | null {
   if (typeof row.imagesCount === "number") place.imagesCount = row.imagesCount;
 
   return place;
+}
+
+const TWO_AM_MINUTES = 2 * 60;
+const NOON_MINUTES = 12 * 60;
+
+function normalizeHoursText(value: string): string {
+  return value.replace(/[\u202f\u00a0]/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function clockToMinutes(token: string): number | null {
+  const match = token.trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?$/);
+  if (!match) return null;
+  const hourText = match[1];
+  if (!hourText) return null;
+  let hour = Number(hourText);
+  const minute = match[2] ? Number(match[2]) : 0;
+  if (hour > 24 || minute > 59) return null;
+  const meridiem = match[3]?.replace(/\./g, "");
+  if (meridiem === "am" || meridiem === "pm") {
+    if (hour === 12) hour = 0;
+    if (meridiem === "pm") hour += 12;
+  } else if (hour === 24) {
+    hour = 0;
+  }
+  return hour * 60 + minute;
+}
+
+function closingMinutes(hours: string): number[] {
+  const text = normalizeHoursText(hours);
+  if (text.includes("24 horas") || text.includes("24 hours")) return [TWO_AM_MINUTES];
+  if (text === "cerrado" || text === "closed") return [];
+  const closings: number[] = [];
+  for (const part of text.split(",")) {
+    const sides = part.split(/\s+to\s+/);
+    const end = sides.length >= 2 ? sides[sides.length - 1] : undefined;
+    if (!end) continue;
+    const minutes = clockToMinutes(end);
+    if (minutes != null) closings.push(minutes);
+  }
+  return closings;
+}
+
+/** Cierra a las 02:00 o más tarde esa madrugada (2:00 inclusive, antes del mediodía). */
+export function closesAtOrAfterTwo(place: Place): boolean {
+  for (const slot of place.openingHours ?? []) {
+    for (const minutes of closingMinutes(slot.hours)) {
+      if (minutes >= TWO_AM_MINUTES && minutes < NOON_MINUTES) return true;
+    }
+  }
+  return false;
+}
+
+/** Más de 50 reseñas y cierre a las 02:00 o después. */
+export function isListedVenue(place: Place): boolean {
+  return place.reviewsCount > 50 && closesAtOrAfterTwo(place);
 }
 
 export function loadPlaces(input: unknown): Place[] {

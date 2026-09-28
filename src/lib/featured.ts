@@ -1,5 +1,6 @@
 import type { Place } from "../../types/place";
 import { featuredIds2026 } from "./featuredClubs2026";
+import { nominatedPlaceIds } from "./nominees";
 
 /** Discotecas clave. Si hay dos fichas del mismo local, se queda la de Google Places. */
 const FEATURED_CLUBS = ["fitz", "copernico", "vandido", "nuit", "tiffany", "b12", "riviera"] as const;
@@ -51,5 +52,6 @@ export function featuredPlaceIds(places: readonly Place[]): Set<string> {
   }
   const ids = new Set([...best.values()].map((place) => place.placeId));
   for (const id of featuredIds2026(places)) ids.add(id);
+  for (const id of nominatedPlaceIds(places)) ids.add(id);
   return ids;
 }

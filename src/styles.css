@@ -177,10 +177,10 @@
 }
 
 .club-cluster-gold {
-  background: radial-gradient(circle at 35% 30%, #f8e7b0, #e0b43a 42%, #6d28d9 78%);
+  background: radial-gradient(circle at 35% 30%, #ffe58a, #ffd700 42%, #6d28d9 78%);
   box-shadow:
-    0 0 0 5px rgba(224, 180, 58, 0.22),
-    0 0 10px rgba(224, 180, 58, 0.4);
+    0 0 0 5px rgba(255, 215, 0, 0.28),
+    0 0 10px rgba(255, 215, 0, 0.5);
 }
 
 .club-pin {
@@ -204,7 +204,7 @@
 }
 
 .club-pin.club-pin-gold {
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 3px rgba(224, 180, 58, 0.45));
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 4px rgba(255, 215, 0, 0.7));
 }
 
 .club-pin.club-pin-gold.is-active {

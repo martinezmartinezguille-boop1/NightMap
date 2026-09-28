@@ -1,6 +1,7 @@
 import { createFileRoute, ClientOnly, Link } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { loadPlacesWithOsm, places as seededPlaces } from "@/lib/places";
+import { isListedVenue, loadPlacesWithOsm, places as seededPlaces } from "@/lib/places";
+import { isNominatedPlace } from "@/lib/nominees";
 import { DETAIL_ZOOM } from "@/lib/mapZoom";
 import { distanceMeters, formatDistance, type LatLng } from "@/lib/geo";
 import type { Place } from "../../types/place";
@@ -99,9 +100,14 @@ function Index() {
     };
   }, [session]);
 
+  const listed = useMemo(
+    () => places.filter((place) => isNominatedPlace(place) || isListedVenue(place)),
+    [places],
+  );
+
   const categorias = useMemo(() => {
     const counts = new Map<string, number>();
-    places.forEach((place) => {
+    listed.forEach((place) => {
       if (place.categoryName) counts.set(place.categoryName, (counts.get(place.categoryName) ?? 0) + 1);
     });
     const top = [...counts.entries()]
@@ -109,19 +115,19 @@ function Index() {
       .slice(0, 6)
       .map(([name]) => name);
     return ["Todas", ...top];
-  }, [places]);
+  }, [listed]);
 
   const ciudades = useMemo(() => {
     const counts = new Map<string, number>();
-    places.forEach((place) => {
+    listed.forEach((place) => {
       if (place.city) counts.set(place.city, (counts.get(place.city) ?? 0) + 1);
     });
     return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name);
-  }, [places]);
+  }, [listed]);
 
   const filtered = useMemo(
     () =>
-      places.filter(
+      listed.filter(
         (place) =>
           (categoria === "Todas" || place.categoryName === categoria) &&
           (city === "Todas" || place.city === city) &&
@@ -129,7 +135,7 @@ function Index() {
             place.title.toLowerCase().includes(query.trim().toLowerCase()) ||
             (place.city ?? "").toLowerCase().includes(query.trim().toLowerCase())),
       ),
-    [places, categoria, city, query],
+    [listed, categoria, city, query],
   );
 
   const zoomCard = dismissedZoom === zoomLevel ? null : zoomFocus;
@@ -137,11 +143,11 @@ function Index() {
 
   const nearby = useMemo(() => {
     if (!userLocation) return [];
-    return places
+    return listed
       .map((place) => ({ place, meters: distanceMeters(userLocation, place.location) }))
       .sort((a, b) => a.meters - b.meters)
       .slice(0, 5);
-  }, [places, userLocation]);
+  }, [listed, userLocation]);
 
   const distanceFor = (place: Place) =>
     userLocation ? formatDistance(distanceMeters(userLocation, place.location)) : undefined;
@@ -355,7 +361,7 @@ function Index() {
 
       {boardOpen && (
         <AlertBoard
-          places={places}
+          places={listed}
           favoriteIds={favorites.ids}
           onToggleFavorite={favorites.toggle}
           onSelect={(place) => {
@@ -424,7 +430,7 @@ function Index() {
       )}
       {dealsOpen && (
         <FlashDeals
-          places={places}
+          places={listed}
           onClose={() => setDealsOpen(false)}
           onSelect={(place) => {
             setDetails(null);
@@ -432,7 +438,7 @@ function Index() {
           }}
         />
       )}
-      {squadOpen && <SocialSquad places={places} onClose={() => setSquadOpen(false)} />}
+      {squadOpen && <SocialSquad places={listed} onClose={() => setSquadOpen(false)} />}
     </div>
   );
 }

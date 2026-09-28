@@ -289,9 +289,9 @@ export default function NightMap({
             <stop offset="1" stopColor="#1e40af" />
           </linearGradient>
           <linearGradient id="club-pin-gold" x1="6" y1="2" x2="28" y2="40" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#f8e7b0" />
-            <stop offset="0.48" stopColor="#e0b43a" />
-            <stop offset="1" stopColor="#8a5a12" />
+            <stop offset="0" stopColor="#FFE58A" />
+            <stop offset="0.45" stopColor="#FFD700" />
+            <stop offset="1" stopColor="#B8860B" />
           </linearGradient>
         </defs>
       </svg>
