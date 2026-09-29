@@ -33,7 +33,10 @@ export function useProClubs() {
       .then((response) => (response.ok ? response.json() : null))
       .then((body: unknown) => {
         if (!body || typeof body !== "object" || !("activas" in body) || !Array.isArray(body.activas)) return;
-        const active = new Set(body.activas.filter((id): id is string => typeof id === "string"));
+        const active = readStoredIds();
+        for (const id of body.activas) {
+          if (typeof id === "string") active.add(id);
+        }
         localStorage.setItem(PRO_STORAGE_KEY, JSON.stringify([...active]));
         setExtraIds(active);
       })

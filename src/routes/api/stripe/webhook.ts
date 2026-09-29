@@ -24,13 +24,13 @@ export const Route = createFileRoute("/api/stripe/webhook")({
 
         if (event.type === "checkout.session.completed") {
           const session = event.data.object;
-          const clubId = session.metadata?.["clubId"] ?? session.client_reference_id ?? "";
+          const clubId = session.metadata?.["discotecaId"] ?? session.metadata?.["clubId"] ?? session.client_reference_id ?? "";
           if (clubId) setClubPlan(clubId, true);
         }
 
         if (event.type === "customer.subscription.deleted") {
           const subscription = event.data.object;
-          const clubId = subscription.metadata?.["clubId"] ?? "";
+          const clubId = subscription.metadata?.["discotecaId"] ?? subscription.metadata?.["clubId"] ?? "";
           if (clubId) setClubPlan(clubId, false);
         }
 

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { officialClubById } from "@/lib/clubPlans";
 import { rememberProClub } from "@/lib/useProClubs";
+import { useSession } from "@/lib/useSession";
 
 function searchText(value: unknown): string {
   let text = "";
@@ -12,8 +13,7 @@ function searchText(value: unknown): string {
 }
 
 export const Route = createFileRoute("/suscripcion_/exito")({
-  validateSearch: (search: Record<string, unknown>): { club: string; simulado: string; session_id: string } => ({
-    club: searchText(search["club"]),
+  validateSearch: (search: Record<string, unknown>): { simulado: string; session_id: string } => ({
     simulado: searchText(search["simulado"]),
     session_id: searchText(search["session_id"]),
   }),
@@ -25,30 +25,35 @@ export const Route = createFileRoute("/suscripcion_/exito")({
 
 function SuccessPage() {
   const search = Route.useSearch();
+  const { session, ready } = useSession();
   const [state, setState] = useState<"pending" | "ok" | "error">("pending");
   const [nombre, setNombre] = useState("");
 
   useEffect(() => {
+    if (!ready) return;
     const simulated = search.simulado === "1" || search.simulado === "true";
-    const payload = search.session_id
-      ? { sessionId: search.session_id, clubId: search.club }
-      : simulated
-        ? { simulado: true, clubId: search.club }
-        : null;
-
-    if (!payload) {
+    const payload = search.session_id ? { sessionId: search.session_id } : simulated ? { simulado: true } : null;
+    if (!payload || (simulated && !session?.access_token)) {
       setState("error");
       return;
     }
 
+    const headers: Record<string, string> = { "content-type": "application/json" };
+    if (session?.access_token) headers["authorization"] = `Bearer ${session.access_token}`;
+
     fetch("/api/suscripcion/activar", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers,
       body: JSON.stringify(payload),
     })
       .then(async (response) => {
         const body: unknown = await response.json();
-        const id = body && typeof body === "object" && "id" in body && typeof body.id === "string" ? body.id : "";
+        const id =
+          body && typeof body === "object" && "discotecaId" in body && typeof body.discotecaId === "string"
+            ? body.discotecaId
+            : body && typeof body === "object" && "id" in body && typeof body.id === "string"
+              ? body.id
+              : "";
         if (!response.ok || !id) {
           setState("error");
           return;
@@ -58,7 +63,7 @@ function SuccessPage() {
         setState("ok");
       })
       .catch(() => setState("error"));
-  }, [search.club, search.session_id, search.simulado]);
+  }, [ready, search.session_id, search.simulado, session?.access_token]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">

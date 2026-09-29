@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { LoginScreen } from "@/components/LoginScreen";
 import { isAdmin } from "@/lib/admin";
 import { useSession } from "@/lib/useSession";
+import { officialClubByTitle } from "@/lib/clubPlans";
+import { isManagerRole } from "@/lib/managerRole";
 import { listClaims, setClaimStatus, type ClaimStatus, type VenueClaim } from "@/lib/venueClaims";
 
 export const Route = createFileRoute("/admin")({
@@ -21,6 +23,7 @@ const STATUS_LABEL: Record<ClaimStatus, string> = {
 function AdminClaims() {
   const { session, ready } = useSession();
   const [claims, setClaims] = useState<VenueClaim[]>([]);
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     const refresh = () => setClaims(listClaims());
@@ -45,8 +48,25 @@ function AdminClaims() {
     return <Navigate to="/" />;
   }
 
-  const decide = (id: string, status: "approved" | "rejected") => {
-    setClaimStatus(id, status);
+  const decide = async (claim: VenueClaim, status: "approved" | "rejected") => {
+    setNotice("");
+    if (status === "approved" && isManagerRole(claim.role)) {
+      const club = officialClubByTitle(claim.clubTitle, claim.city);
+      if (!club) {
+        setNotice("La solicitud queda aprobada, pero esa sala no está en la base de NightMap Pro.");
+      } else {
+        const response = await fetch("/api/gerentes", {
+          method: "POST",
+          headers: {
+            authorization: `Bearer ${session.access_token}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ email: claim.email, discotecaId: club.id, role: claim.role }),
+        });
+        if (!response.ok) setNotice("No se ha podido vincular esa cuenta con la sala.");
+      }
+    }
+    setClaimStatus(claim.id, status);
     setClaims(listClaims());
   };
 
@@ -67,6 +87,7 @@ function AdminClaims() {
             Volver al mapa
           </Link>
         </div>
+        {notice && <p className="mt-4 text-sm text-[#FFD700]">{notice}</p>}
 
         {claims.length === 0 ? (
           <p className="mt-8 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
@@ -124,14 +145,14 @@ function AdminClaims() {
                   <div className="mt-4 flex gap-2">
                     <button
                       type="button"
-                      onClick={() => decide(claim.id, "approved")}
+                      onClick={() => decide(claim, "approved")}
                       className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
                     >
                       Aprobar
                     </button>
                     <button
                       type="button"
-                      onClick={() => decide(claim.id, "rejected")}
+                      onClick={() => decide(claim, "rejected")}
                       className="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-muted-foreground"
                     >
                       Rechazar

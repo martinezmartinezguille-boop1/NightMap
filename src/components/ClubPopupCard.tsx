@@ -2,10 +2,9 @@ import type { SyntheticEvent } from "react";
 import type { Place } from "../../types/place";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { CheckInButton } from "@/components/PartyPassport";
-import { Link } from "@tanstack/react-router";
 import { X, MapPin, Star, Globe, PanelRightOpen } from "lucide-react";
 import { nomineeCommunity } from "@/lib/nominees";
-import { PRO_PRICE_LABEL, matchOfficialClub } from "@/lib/clubPlans";
+import { matchOfficialClub } from "@/lib/clubPlans";
 import { useProClubs } from "@/lib/useProClubs";
 import fallbackImg from "@/assets/club-house.jpg";
 
@@ -86,11 +85,6 @@ export function ClubPopupCard({
             <p className="text-sm text-muted-foreground">{club.city}</p>
             {official && pro && (
               <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#FFD700]">Pin dorado · NightMap Pro</p>
-            )}
-            {official && !pro && (
-              <Link to="/suscripcion" search={{ club: official.id }} className="mt-1 inline-block text-xs font-semibold uppercase tracking-wide text-[#FFD700]">
-                Destacar sala · {PRO_PRICE_LABEL}
-              </Link>
             )}
           </div>
           {club.totalScore != null && (

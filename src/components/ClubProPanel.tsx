@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
 import type { Place } from "../../types/place";
-import { PRO_PRICE_LABEL, matchOfficialClub } from "@/lib/clubPlans";
+import { matchOfficialClub } from "@/lib/clubPlans";
 import { addBoardPost } from "@/lib/boardPosts";
 import { useProClubs } from "@/lib/useProClubs";
 
@@ -10,22 +9,15 @@ export function ClubProPanel({ club }: { club: Place }) {
   const { isPro } = useProClubs();
   const [message, setMessage] = useState("");
   const [posted, setPosted] = useState(false);
-  if (!official) return null;
-
-  const pro = isPro(club);
+  if (!official || !isPro(club)) return null;
 
   return (
-    <section className={`rounded-xl border p-3 ${pro ? "border-[#FFD700]/60 bg-[#FFD700]/10" : "border-border bg-secondary/40"}`}>
-      <p className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-[#FFD700]">
-        {pro ? "NightMap Pro" : "Destacar sala"}
-      </p>
+    <section className="rounded-xl border border-[#FFD700]/60 bg-[#FFD700]/10 p-3">
+      <p className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-[#FFD700]">NightMap Pro</p>
       <p className="mt-1 text-sm text-muted-foreground">
-        {pro
-          ? "Pin dorado en el mapa. Los avisos de esta sala salen arriba en el tablón."
-          : `Suscripción de ${PRO_PRICE_LABEL}: pin dorado y avisos destacados.`}
+        Pin dorado en el mapa. Los avisos de esta sala salen arriba en el tablón.
       </p>
-      {pro ? (
-        <form
+      <form
           className="mt-3 space-y-2"
           onSubmit={(event) => {
             event.preventDefault();
@@ -58,16 +50,7 @@ export function ClubProPanel({ club }: { club: Place }) {
             Publicar aviso destacado
           </button>
           {posted && <p className="text-xs text-[#FFD700]">Publicado arriba del tablón.</p>}
-        </form>
-      ) : (
-        <Link
-          to="/suscripcion"
-          search={{ club: official.id }}
-          className="mt-3 flex w-full items-center justify-center rounded-lg bg-[#FFD700] px-3 py-2 text-sm font-bold text-black"
-        >
-          Suscribir sala · {PRO_PRICE_LABEL}
-        </Link>
-      )}
+      </form>
     </section>
   );
 }

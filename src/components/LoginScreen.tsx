@@ -1,5 +1,4 @@
 import { type FormEvent, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import type { AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
@@ -193,9 +192,6 @@ export function LoginScreen() {
             </button>
           </form>
         </div>
-        <Link to="/suscripcion" className="mt-4 block text-center text-xs font-semibold uppercase tracking-wider text-[#FFD700]">
-          Salas: NightMap Pro · 10 €/mes
-        </Link>
       </section>
     </div>
   );

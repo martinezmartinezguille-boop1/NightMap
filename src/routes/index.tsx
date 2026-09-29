@@ -8,6 +8,7 @@ import { DETAIL_ZOOM } from "@/lib/mapZoom";
 import { distanceMeters, formatDistance, type LatLng } from "@/lib/geo";
 import type { Place } from "../../types/place";
 import { AlertBoard } from "@/components/AlertBoard";
+import { ProMapButton } from "@/components/ProMapButton";
 import { FlashDeals } from "@/components/FlashDeals";
 import { SocialSquad } from "@/components/SocialSquad";
 import { PartyPassport } from "@/components/PartyPassport";
@@ -234,12 +235,6 @@ function Index() {
               <h1 className="font-display text-lg font-bold tracking-wide text-foreground text-glow">
                 NightMap
               </h1>
-              <Link
-                to="/suscripcion"
-                className="rounded-lg border border-[#FFD700]/60 px-2 py-1 font-display text-[10px] font-bold uppercase tracking-wider text-[#FFD700]"
-              >
-                Pro · 10 €
-              </Link>
             </div>
             <div className="relative max-w-xs flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -251,6 +246,8 @@ function Index() {
               />
             </div>
           </div>
+
+          <ProMapButton accessToken={session.access_token} />
 
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex flex-wrap gap-1 rounded-xl border border-border panel-blur p-1">

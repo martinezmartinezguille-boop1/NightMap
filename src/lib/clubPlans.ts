@@ -14,6 +14,7 @@ export interface OfficialClub {
   contactoEnviado: boolean;
   suscripcionActiva: boolean;
   plan: ClubPlan;
+  gerenteEmail?: string;
 }
 
 type Box = readonly [latMin: number, latMax: number, lngMin: number, lngMax: number];
@@ -92,6 +93,23 @@ const clubsById = new Map(officialClubs.map((club) => [club.id, club]));
 
 export function officialClubById(id: string): OfficialClub | null {
   return clubsById.get(id) ?? null;
+}
+
+export function officialClubByTitle(title: string, city: string): OfficialClub | null {
+  const name = normalize(title);
+  const placeCity = normalize(city);
+  if (!name) return null;
+  const hits = officialClubs.filter((club) => {
+    const clubName = normalize(club.nombre);
+    const sameName = clubName === name || name.includes(clubName) || clubName.includes(name);
+    if (!sameName) return false;
+    if (!placeCity) return true;
+    const clubCity = normalize(club.ciudad);
+    return clubCity === placeCity || placeCity.includes(clubCity);
+  });
+  const exact = hits.find((club) => normalize(club.nombre) === name);
+  if (exact) return exact;
+  return hits.length === 1 ? (hits[0] ?? null) : null;
 }
 
 export function matchOfficialClub(place: Place): OfficialClub | null {
