@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from "react";
 import type { AuthError } from "@supabase/supabase-js";
+import { siteUrl } from "@/lib/siteUrl";
 import { supabase } from "@/lib/supabase";
 
 type AuthMode = "login" | "signup";
@@ -50,7 +51,7 @@ export function LoginScreen() {
     setPending("google");
     const { error: authErrorValue } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: siteUrl("/") },
     });
     if (authErrorValue) fail(authErrorValue);
   };
@@ -75,7 +76,7 @@ export function LoginScreen() {
     const { data, error: authErrorValue } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: { emailRedirectTo: window.location.origin },
+      options: { emailRedirectTo: siteUrl("/") },
     });
     if (authErrorValue) {
       fail(authErrorValue);

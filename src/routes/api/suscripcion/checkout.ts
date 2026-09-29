@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { siteOrigin, siteUrl } from "@/lib/siteUrl";
 import { createProCheckout, stripeSecret } from "@/server/stripeClub";
 import { userFromRequest } from "@/server/sessionUser";
 import { resolveManagedClub } from "@/server/venueManagers";
@@ -15,16 +16,15 @@ export const Route = createFileRoute("/api/suscripcion/checkout")({
         }
 
         if (!stripeSecret()) {
-          const origin = new URL(request.url).origin;
           return Response.json({
             simulado: true,
             discotecaId: club.id,
-            url: `${origin}/suscripcion/exito?simulado=1`,
+            url: siteUrl("/suscripcion/exito?simulado=1"),
           });
         }
 
         try {
-          const url = await createProCheckout(club.id, club.nombre, new URL(request.url).origin);
+          const url = await createProCheckout(club.id, club.nombre, siteOrigin());
           return Response.json({ simulado: false, discotecaId: club.id, url });
         } catch (error) {
           const message = error instanceof Error ? error.message : "No se ha podido abrir el pago.";
