@@ -47,6 +47,7 @@ function clusterIcon(cluster: L.MarkerCluster, featured: boolean) {
 
 interface NightMapProps {
   places: Place[];
+  proPlaceIds: ReadonlySet<string>;
   activeId: string | null;
   focusPlace?: Place | null;
   userLocation?: { lat: number; lng: number } | null;
@@ -74,6 +75,7 @@ const USER_ZOOM = 14;
 
 export default function NightMap({
   places,
+  proPlaceIds,
   activeId,
   focusPlace = null,
   userLocation = null,
@@ -189,7 +191,7 @@ export default function NightMap({
       const { lat, lng } = place.location;
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
       seen.add(place.placeId);
-      const featured = featuredIds.has(place.placeId);
+      const featured = featuredIds.has(place.placeId) || proPlaceIds.has(place.placeId);
       const marker = L.marker([lat, lng], {
         icon: featured ? goldPinIcon : pinIcon,
         title: place.title,
@@ -242,7 +244,7 @@ export default function NightMap({
       if (clusterRef.current === cluster) clusterRef.current = null;
       markersRef.current.clear();
     };
-  }, [places]);
+  }, [places, proPlaceIds]);
 
   // Toggle active styling without rebuilding markers
   useEffect(() => {

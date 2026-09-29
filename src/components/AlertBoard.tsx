@@ -7,8 +7,10 @@ import {
   formatAlertAge,
   resolveAlerts,
   type AlertKind,
-  type VenueAlert,
 } from "@/lib/venueAlerts";
+import { matchOfficialClub } from "@/lib/clubPlans";
+import { readBoardPosts, type BoardPost } from "@/lib/boardPosts";
+import { useProClubs } from "@/lib/useProClubs";
 import { Clock, Megaphone, Package, Users, X } from "lucide-react";
 
 interface AlertBoardProps {
@@ -30,16 +32,55 @@ const KIND_ICON = {
 export function AlertBoard({ places, favoriteIds, onToggleFavorite, onSelect, onClose }: AlertBoardProps) {
   const [filter, setFilter] = useState<BoardFilter>("all");
   const [now, setNow] = useState(() => Date.now());
+  const [posts, setPosts] = useState<BoardPost[]>([]);
+  const { isPro, extraIds } = useProClubs();
 
   useEffect(() => {
     const clock = window.setInterval(() => setNow(Date.now()), 15000);
     return () => window.clearInterval(clock);
   }, []);
 
+  useEffect(() => {
+    const sync = () => setPosts(readBoardPosts());
+    sync();
+    window.addEventListener("nightmap-board", sync);
+    return () => window.removeEventListener("nightmap-board", sync);
+  }, []);
+
   const alerts = useMemo(() => resolveAlerts(places, BASE_ALERTS, now), [places, now]);
 
   const favoriteSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
-  const visible = filter === "favorites" ? alerts.filter((alert) => favoriteSet.has(alert.place.placeId)) : alerts;
+  const rows = useMemo(() => {
+    const fromAlerts = alerts.map((alert) => ({
+      id: alert.id,
+      place: alert.place,
+      title: alert.place.title,
+      message: alert.message,
+      postedAt: alert.postedAt,
+      kind: alert.kind,
+      label: alertKindLabel(alert.kind),
+      pro: isPro(alert.place),
+    }));
+    const fromPosts = posts.flatMap((post) => {
+      const place = places.find((item) => matchOfficialClub(item)?.id === post.clubId) ?? null;
+      const pro = place ? isPro(place) : extraIds.has(post.clubId);
+      return [{
+        id: post.id,
+        place,
+        title: place?.title ?? post.nombre,
+        message: post.message,
+        postedAt: post.postedAt,
+        kind: "schedule" as const,
+        label: "Aviso de sala",
+        pro,
+      }];
+    });
+    return [...fromAlerts, ...fromPosts].sort((a, b) => {
+      if (a.pro !== b.pro) return a.pro ? -1 : 1;
+      return b.postedAt - a.postedAt;
+    });
+  }, [alerts, posts, places, isPro, extraIds]);
+  const visible = filter === "favorites" ? rows.filter((row) => row.place && favoriteSet.has(row.place.placeId)) : rows;
 
   return (
     <section
@@ -89,14 +130,31 @@ export function AlertBoard({ places, favoriteIds, onToggleFavorite, onSelect, on
               : "No hay avisos en este momento."}
           </li>
         ) : (
-          visible.map((alert) => (
+          visible.map((row) => (
             <AlertRow
-              key={alert.id}
-              alert={alert}
+              key={row.id}
+              title={row.title}
+              message={row.message}
+              postedAt={row.postedAt}
+              kind={row.kind}
+              label={row.label}
+              pro={row.pro}
               now={now}
-              favorite={favoriteSet.has(alert.place.placeId)}
-              onToggleFavorite={() => onToggleFavorite(alert.place.placeId)}
-              onSelect={() => onSelect(alert.place)}
+              favorite={row.place ? favoriteSet.has(row.place.placeId) : false}
+              onToggleFavorite={
+                row.place
+                  ? () => {
+                      if (row.place) onToggleFavorite(row.place.placeId);
+                    }
+                  : undefined
+              }
+              onSelect={
+                row.place
+                  ? () => {
+                      if (row.place) onSelect(row.place);
+                    }
+                  : undefined
+              }
             />
           ))
         )}
@@ -130,32 +188,43 @@ function BoardTab({
 }
 
 function AlertRow({
-  alert,
+  title,
+  message,
+  postedAt,
+  kind,
+  label,
+  pro,
   now,
   favorite,
   onToggleFavorite,
   onSelect,
 }: {
-  alert: VenueAlert;
+  title: string;
+  message: string;
+  postedAt: number;
+  kind: AlertKind;
+  label: string;
+  pro: boolean;
   now: number;
   favorite: boolean;
-  onToggleFavorite: () => void;
-  onSelect: () => void;
+  onToggleFavorite?: () => void;
+  onSelect?: () => void;
 }) {
-  const Icon = KIND_ICON[alert.kind];
+  const Icon = KIND_ICON[kind];
   return (
-    <li className="rounded-xl border border-border bg-card/80 p-3">
+    <li className={`rounded-xl border p-3 ${pro ? "border-[#FFD700]/70 bg-[#FFD700]/10" : "border-border bg-card/80"}`}>
       <div className="flex items-start justify-between gap-2">
         <button type="button" onClick={onSelect} className="min-w-0 flex-1 text-left">
-          <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide ${kindClass(alert.kind)}`}>
+          <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide ${pro ? "text-[#FFD700]" : kindClass(kind)}`}>
             <Icon className="h-3.5 w-3.5" />
-            {alertKindLabel(alert.kind)}
+            {pro ? "Pro · " : ""}
+            {label}
           </span>
-          <span className="mt-1 block truncate font-display text-sm font-bold text-foreground">{alert.place.title}</span>
-          <span className="mt-1 block text-sm text-muted-foreground">{alert.message}</span>
-          <span className="mt-2 block text-[11px] font-semibold text-gold">{formatAlertAge(alert.postedAt, now)}</span>
+          <span className={`mt-1 block truncate font-display text-sm font-bold ${pro ? "text-[#FFD700]" : "text-foreground"}`}>{title}</span>
+          <span className="mt-1 block text-sm text-muted-foreground">{message}</span>
+          <span className="mt-2 block text-[11px] font-semibold text-gold">{formatAlertAge(postedAt, now)}</span>
         </button>
-        <FavoriteButton active={favorite} onToggle={onToggleFavorite} className="shrink-0" />
+        {onToggleFavorite && <FavoriteButton active={favorite} onToggle={onToggleFavorite} className="shrink-0" />}
       </div>
     </li>
   );

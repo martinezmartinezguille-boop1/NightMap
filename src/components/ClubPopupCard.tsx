@@ -2,8 +2,11 @@ import type { SyntheticEvent } from "react";
 import type { Place } from "../../types/place";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { CheckInButton } from "@/components/PartyPassport";
+import { Link } from "@tanstack/react-router";
 import { X, MapPin, Star, Globe, PanelRightOpen } from "lucide-react";
 import { nomineeCommunity } from "@/lib/nominees";
+import { PRO_PRICE_LABEL, matchOfficialClub } from "@/lib/clubPlans";
+import { useProClubs } from "@/lib/useProClubs";
 import fallbackImg from "@/assets/club-house.jpg";
 
 interface ClubPopupCardProps {
@@ -24,6 +27,9 @@ export function ClubPopupCard({
   onOpenDetails,
 }: ClubPopupCardProps) {
   const isGoogleSearch = !club.website || club.website.includes("google.com/maps");
+  const official = matchOfficialClub(club);
+  const { isPro } = useProClubs();
+  const pro = official ? isPro(club) : false;
   const webLabel = isGoogleSearch ? "Ver en Google Maps" : "Comprar entradas";
 
   const keepOpen = (e: SyntheticEvent) => {
@@ -78,6 +84,14 @@ export function ClubPopupCard({
               <p className="text-xs font-semibold uppercase tracking-wide text-[#FFD700]">{nomineeCommunity(club)}</p>
             )}
             <p className="text-sm text-muted-foreground">{club.city}</p>
+            {official && pro && (
+              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#FFD700]">Pin dorado · NightMap Pro</p>
+            )}
+            {official && !pro && (
+              <Link to="/suscripcion" search={{ club: official.id }} className="mt-1 inline-block text-xs font-semibold uppercase tracking-wide text-[#FFD700]">
+                Destacar sala · {PRO_PRICE_LABEL}
+              </Link>
+            )}
           </div>
           {club.totalScore != null && (
             <span className="flex items-center gap-1 whitespace-nowrap rounded-md bg-secondary px-2 py-1 text-xs font-semibold text-gold">

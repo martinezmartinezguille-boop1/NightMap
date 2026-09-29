@@ -6,6 +6,7 @@ import { FavoriteButton } from "@/components/FavoriteButton";
 import { X, MapPin, Phone, Star, Navigation, Globe } from "lucide-react";
 import fallbackImg from "@/assets/club-house.jpg";
 import { nomineeCommunity } from "@/lib/nominees";
+import { ClubProPanel } from "@/components/ClubProPanel";
 
 interface ClubSidebarProps {
   club: Place;
@@ -139,6 +140,7 @@ export function ClubSidebar({ club, distanceLabel, favorite, onToggleFavorite, o
           </div>
         </section>
 
+        <ClubProPanel club={club} />
         <ClaimVenueForm club={club} />
       </div>
 

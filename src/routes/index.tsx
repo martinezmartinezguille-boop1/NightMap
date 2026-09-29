@@ -2,6 +2,8 @@ import { createFileRoute, ClientOnly, Link } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { isListedVenue, loadPlacesWithOsm, places as seededPlaces } from "@/lib/places";
 import { isNominatedPlace } from "@/lib/nominees";
+import { proPlaceIds } from "@/lib/clubPlans";
+import { useProClubs } from "@/lib/useProClubs";
 import { DETAIL_ZOOM } from "@/lib/mapZoom";
 import { distanceMeters, formatDistance, type LatLng } from "@/lib/geo";
 import type { Place } from "../../types/place";
@@ -81,6 +83,7 @@ function Index() {
   const [dealsOpen, setDealsOpen] = useState(false);
   const [squadOpen, setSquadOpen] = useState(false);
   const favorites = useFavorites();
+  const { extraIds } = useProClubs();
 
   useEffect(() => {
     if (!session) return;
@@ -137,6 +140,7 @@ function Index() {
       ),
     [listed, categoria, city, query],
   );
+  const goldIds = useMemo(() => proPlaceIds(filtered, extraIds), [filtered, extraIds]);
 
   const zoomCard = dismissedZoom === zoomLevel ? null : zoomFocus;
   const shown = hovered ?? pinned ?? zoomCard;
@@ -198,6 +202,7 @@ function Index() {
         <Suspense fallback={<MapFallback />}>
           <NightMap
             places={filtered}
+            proPlaceIds={goldIds}
             activeId={shown?.placeId ?? null}
             focusPlace={pinned}
             userLocation={userLocation}
@@ -229,6 +234,12 @@ function Index() {
               <h1 className="font-display text-lg font-bold tracking-wide text-foreground text-glow">
                 NightMap
               </h1>
+              <Link
+                to="/suscripcion"
+                className="rounded-lg border border-[#FFD700]/60 px-2 py-1 font-display text-[10px] font-bold uppercase tracking-wider text-[#FFD700]"
+              >
+                Pro · 10 €
+              </Link>
             </div>
             <div className="relative max-w-xs flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

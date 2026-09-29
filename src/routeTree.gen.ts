@@ -11,6 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as SuscripcionRouteImport } from './routes/suscripcion'
+import { Route as SuscripcionExitoRouteImport } from './routes/suscripcion_.exito'
+import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
+import { Route as ApiSuscripcionActivarRouteImport } from './routes/api/suscripcion/activar'
+import { Route as ApiSuscripcionCheckoutRouteImport } from './routes/api/suscripcion/checkout'
+import { Route as ApiSuscripcionEstadoRouteImport } from './routes/api/suscripcion/estado'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +28,110 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SuscripcionRoute = SuscripcionRouteImport.update({
+  id: '/suscripcion',
+  path: '/suscripcion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SuscripcionExitoRoute = SuscripcionExitoRouteImport.update({
+  id: '/suscripcion_/exito',
+  path: '/suscripcion/exito',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
+  id: '/api/stripe/webhook',
+  path: '/api/stripe/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSuscripcionActivarRoute = ApiSuscripcionActivarRouteImport.update({
+  id: '/api/suscripcion/activar',
+  path: '/api/suscripcion/activar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSuscripcionCheckoutRoute = ApiSuscripcionCheckoutRouteImport.update({
+  id: '/api/suscripcion/checkout',
+  path: '/api/suscripcion/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSuscripcionEstadoRoute = ApiSuscripcionEstadoRouteImport.update({
+  id: '/api/suscripcion/estado',
+  path: '/api/suscripcion/estado',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/suscripcion': typeof SuscripcionRoute
+  '/suscripcion/exito': typeof SuscripcionExitoRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
+  '/api/suscripcion/activar': typeof ApiSuscripcionActivarRoute
+  '/api/suscripcion/checkout': typeof ApiSuscripcionCheckoutRoute
+  '/api/suscripcion/estado': typeof ApiSuscripcionEstadoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/suscripcion': typeof SuscripcionRoute
+  '/suscripcion/exito': typeof SuscripcionExitoRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
+  '/api/suscripcion/activar': typeof ApiSuscripcionActivarRoute
+  '/api/suscripcion/checkout': typeof ApiSuscripcionCheckoutRoute
+  '/api/suscripcion/estado': typeof ApiSuscripcionEstadoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/suscripcion': typeof SuscripcionRoute
+  '/suscripcion_/exito': typeof SuscripcionExitoRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
+  '/api/suscripcion/activar': typeof ApiSuscripcionActivarRoute
+  '/api/suscripcion/checkout': typeof ApiSuscripcionCheckoutRoute
+  '/api/suscripcion/estado': typeof ApiSuscripcionEstadoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/suscripcion'
+    | '/suscripcion/exito'
+    | '/api/stripe/webhook'
+    | '/api/suscripcion/activar'
+    | '/api/suscripcion/checkout'
+    | '/api/suscripcion/estado'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin'
-  id: '__root__' | '/' | '/admin'
+  to:
+    | '/'
+    | '/admin'
+    | '/suscripcion'
+    | '/suscripcion/exito'
+    | '/api/stripe/webhook'
+    | '/api/suscripcion/activar'
+    | '/api/suscripcion/checkout'
+    | '/api/suscripcion/estado'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/suscripcion'
+    | '/suscripcion_/exito'
+    | '/api/stripe/webhook'
+    | '/api/suscripcion/activar'
+    | '/api/suscripcion/checkout'
+    | '/api/suscripcion/estado'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  SuscripcionRoute: typeof SuscripcionRoute
+  SuscripcionExitoRoute: typeof SuscripcionExitoRoute
+  ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
+  ApiSuscripcionActivarRoute: typeof ApiSuscripcionActivarRoute
+  ApiSuscripcionCheckoutRoute: typeof ApiSuscripcionCheckoutRoute
+  ApiSuscripcionEstadoRoute: typeof ApiSuscripcionEstadoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +150,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/suscripcion': {
+      id: '/suscripcion'
+      path: '/suscripcion'
+      fullPath: '/suscripcion'
+      preLoaderRoute: typeof SuscripcionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/suscripcion_/exito': {
+      id: '/suscripcion_/exito'
+      path: '/suscripcion/exito'
+      fullPath: '/suscripcion/exito'
+      preLoaderRoute: typeof SuscripcionExitoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/stripe/webhook': {
+      id: '/api/stripe/webhook'
+      path: '/api/stripe/webhook'
+      fullPath: '/api/stripe/webhook'
+      preLoaderRoute: typeof ApiStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/suscripcion/activar': {
+      id: '/api/suscripcion/activar'
+      path: '/api/suscripcion/activar'
+      fullPath: '/api/suscripcion/activar'
+      preLoaderRoute: typeof ApiSuscripcionActivarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/suscripcion/checkout': {
+      id: '/api/suscripcion/checkout'
+      path: '/api/suscripcion/checkout'
+      fullPath: '/api/suscripcion/checkout'
+      preLoaderRoute: typeof ApiSuscripcionCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/suscripcion/estado': {
+      id: '/api/suscripcion/estado'
+      path: '/api/suscripcion/estado'
+      fullPath: '/api/suscripcion/estado'
+      preLoaderRoute: typeof ApiSuscripcionEstadoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  SuscripcionRoute: SuscripcionRoute,
+  SuscripcionExitoRoute: SuscripcionExitoRoute,
+  ApiStripeWebhookRoute: ApiStripeWebhookRoute,
+  ApiSuscripcionActivarRoute: ApiSuscripcionActivarRoute,
+  ApiSuscripcionCheckoutRoute: ApiSuscripcionCheckoutRoute,
+  ApiSuscripcionEstadoRoute: ApiSuscripcionEstadoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
