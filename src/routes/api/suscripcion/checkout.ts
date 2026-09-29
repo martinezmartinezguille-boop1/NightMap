@@ -9,7 +9,7 @@ export const Route = createFileRoute("/api/suscripcion/checkout")({
       POST: async ({ request }) => {
         const user = await userFromRequest(request);
         if (!user) return Response.json({ error: "Inicia sesión para suscribir tu sala." }, { status: 401 });
-        const club = resolveManagedClub(user);
+        const club = await resolveManagedClub(user);
         if (!club) {
           return Response.json({ error: "Tu cuenta no está vinculada como gerente de una sala." }, { status: 403 });
         }

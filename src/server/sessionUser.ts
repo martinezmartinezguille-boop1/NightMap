@@ -9,8 +9,8 @@ export interface SessionUser {
 function envValue(name: string): string {
   const fromProcess = process.env[name];
   if (typeof fromProcess === "string" && fromProcess) return fromProcess;
-  const vite = import.meta.env as unknown as Record<string, string | boolean | undefined>;
-  const fromVite = vite[name];
+  const vite = import.meta.env as unknown as Record<string, string | boolean | undefined> | undefined;
+  const fromVite = vite?.[name];
   return typeof fromVite === "string" ? fromVite : "";
 }
 

@@ -1,5 +1,8 @@
 import { useState, type FormEvent } from "react";
 import type { Place } from "../../types/place";
+import { matchOfficialClub } from "@/lib/clubPlans";
+import { isManagerRole } from "@/lib/managerRole";
+import { useSession } from "@/lib/useSession";
 import { submitClaim } from "@/lib/venueClaims";
 
 interface ClaimVenueFormProps {
@@ -13,16 +16,25 @@ function proofHref(value: string): string {
 }
 
 export function ClaimVenueForm({ club }: ClaimVenueFormProps) {
+  const { session } = useSession();
+  const accountEmail = session?.user.email?.trim().toLowerCase() ?? "";
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
-  const [email, setEmail] = useState("");
   const [proof, setProof] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
 
-  const onSubmit = (event: FormEvent) => {
+  const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!session?.access_token || !accountEmail) {
+      setError("Inicia sesión con el correo de la sala antes de reclamarla.");
+      return;
+    }
+    if (!isManagerRole(role)) {
+      setError("El cargo tiene que ser gerente o responsable.");
+      return;
+    }
     const href = proofHref(proof);
     try {
       const url = new URL(href);
@@ -35,13 +47,36 @@ export function ClaimVenueForm({ club }: ClaimVenueFormProps) {
       return;
     }
 
+    const official = matchOfficialClub(club);
+    const response = await fetch("/api/reclamos", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${session.access_token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        placeId: club.placeId,
+        clubTitle: club.title,
+        city: club.city ?? "",
+        name: name.trim(),
+        role: role.trim(),
+        proofUrl: href,
+        discotecaId: official?.id ?? "",
+      }),
+    });
+    if (!response.ok) {
+      const body: unknown = await response.json().catch(() => null);
+      const message = body && typeof body === "object" && "error" in body && typeof body.error === "string" ? body.error : "";
+      setError(message || "No se ha enviado la solicitud.");
+      return;
+    }
     submitClaim({
       placeId: club.placeId,
       clubTitle: club.title,
       city: club.city ?? "",
       name: name.trim(),
       role: role.trim(),
-      email: email.trim(),
+      email: accountEmail,
       proofUrl: href,
     });
     setError(null);
@@ -73,7 +108,7 @@ export function ClaimVenueForm({ club }: ClaimVenueFormProps) {
       <div>
         <h3 className="font-display text-sm font-bold text-foreground">Reclama este local</h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          Cuéntanos quién eres. Revisaremos el enlace antes de darte acceso.
+          El correo de la solicitud es el de tu cuenta. El cargo tiene que ser gerente o responsable.
         </p>
       </div>
       <label className="block text-xs font-semibold text-muted-foreground">
@@ -91,7 +126,7 @@ export function ClaimVenueForm({ club }: ClaimVenueFormProps) {
           required
           value={role}
           onChange={(event) => setRole(event.target.value)}
-          placeholder="Dueño, manager, promotor…"
+          placeholder="Gerente o responsable"
           className="mt-1 w-full select-text rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </label>
@@ -100,8 +135,8 @@ export function ClaimVenueForm({ club }: ClaimVenueFormProps) {
         <input
           required
           type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
+          readOnly
+          value={accountEmail}
           className="mt-1 w-full select-text rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </label>

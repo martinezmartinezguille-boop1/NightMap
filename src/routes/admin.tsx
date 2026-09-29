@@ -3,9 +3,19 @@ import { useEffect, useState } from "react";
 import { LoginScreen } from "@/components/LoginScreen";
 import { isAdmin } from "@/lib/admin";
 import { useSession } from "@/lib/useSession";
-import { officialClubByTitle } from "@/lib/clubPlans";
-import { isManagerRole } from "@/lib/managerRole";
-import { listClaims, setClaimStatus, type ClaimStatus, type VenueClaim } from "@/lib/venueClaims";
+interface StoredClaim {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  clubTitle: string;
+  city: string;
+  placeId: string;
+  discotecaId: string;
+  proofUrl: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+}
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -14,7 +24,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminClaims,
 });
 
-const STATUS_LABEL: Record<ClaimStatus, string> = {
+const STATUS_LABEL: Record<StoredClaim["status"], string> = {
   pending: "Pendiente",
   approved: "Aprobada",
   rejected: "Rechazada",
@@ -22,19 +32,23 @@ const STATUS_LABEL: Record<ClaimStatus, string> = {
 
 function AdminClaims() {
   const { session, ready } = useSession();
-  const [claims, setClaims] = useState<VenueClaim[]>([]);
+  const [claims, setClaims] = useState<StoredClaim[]>([]);
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    const refresh = () => setClaims(listClaims());
-    refresh();
-    window.addEventListener("nightmap-claims", refresh);
-    window.addEventListener("storage", refresh);
+    if (!session?.access_token) return;
+    let active = true;
+    fetch("/api/reclamos", { headers: { authorization: `Bearer ${session.access_token}` } })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: unknown) => {
+        if (!active || !body || typeof body !== "object" || !("reclamos" in body) || !Array.isArray(body.reclamos)) return;
+        setClaims(body.reclamos.filter((row): row is StoredClaim => !!row && typeof row === "object" && "id" in row));
+      })
+      .catch(() => undefined);
     return () => {
-      window.removeEventListener("nightmap-claims", refresh);
-      window.removeEventListener("storage", refresh);
+      active = false;
     };
-  }, []);
+  }, [session?.access_token, notice]);
 
   if (!ready) {
     return <div className="login-screen" aria-busy="true" />;
@@ -48,26 +62,23 @@ function AdminClaims() {
     return <Navigate to="/" />;
   }
 
-  const decide = async (claim: VenueClaim, status: "approved" | "rejected") => {
+  const decide = async (claim: StoredClaim, status: "approved" | "rejected") => {
     setNotice("");
-    if (status === "approved" && isManagerRole(claim.role)) {
-      const club = officialClubByTitle(claim.clubTitle, claim.city);
-      if (!club) {
-        setNotice("La solicitud queda aprobada, pero esa sala no está en la base de NightMap Pro.");
-      } else {
-        const response = await fetch("/api/gerentes", {
-          method: "POST",
-          headers: {
-            authorization: `Bearer ${session.access_token}`,
-            "content-type": "application/json",
-          },
-          body: JSON.stringify({ email: claim.email, discotecaId: club.id, role: claim.role }),
-        });
-        if (!response.ok) setNotice("No se ha podido vincular esa cuenta con la sala.");
-      }
+    const response = await fetch("/api/reclamos", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${session.access_token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ id: claim.id, status }),
+    });
+    const body: unknown = await response.json().catch(() => null);
+    const message = body && typeof body === "object" && "error" in body && typeof body.error === "string" ? body.error : "";
+    if (!response.ok) {
+      setNotice(message || "No se ha podido resolver la solicitud.");
+      return;
     }
-    setClaimStatus(claim.id, status);
-    setClaims(listClaims());
+    setNotice(status === "approved" ? `${claim.clubTitle} queda vinculada a ${claim.email}.` : "Solicitud rechazada.");
   };
 
   return (

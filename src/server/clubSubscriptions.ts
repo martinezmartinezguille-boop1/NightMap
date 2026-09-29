@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { officialClubs, type ClubPlan, type OfficialClub } from "@/lib/clubPlans";
+import { activePlanIds, savePlan } from "@/server/proRecords";
 
 const FILE = resolve("discotecas.json");
 const overrides = new Map<string, boolean>();
@@ -36,7 +37,7 @@ export function activeClubIds(): string[] {
     .map((club) => club.id);
 }
 
-export function setClubPlan(id: string, active: boolean): OfficialClub | null {
+export async function setClubPlan(id: string, active: boolean): Promise<OfficialClub | null> {
   const known = officialClubs.find((club) => club.id === id) ?? null;
   const rows = readRawRows();
   const index = rows.findIndex((row) => isOfficialClub(row) && row.id === id);
@@ -51,13 +52,21 @@ export function setClubPlan(id: string, active: boolean): OfficialClub | null {
     try {
       writeFileSync(FILE, `${JSON.stringify(rows, null, 2)}\n`, "utf8");
     } catch {
-      // En Vercel el disco no conserva el archivo. La sala queda activa en esta instancia y en el navegador.
+      // En Vercel el disco no conserva el archivo. El estado queda en la base de datos.
     }
+    if (!(await savePlan(id, active))) return null;
     return { ...current, suscripcionActiva: active, plan };
   }
 
   if (!known) return null;
+  if (!(await savePlan(id, active))) return null;
   return { ...known, suscripcionActiva: active, plan };
+}
+
+export async function allActiveClubIds(): Promise<string[]> {
+  const ids = new Set(activeClubIds());
+  for (const id of await activePlanIds()) ids.add(id);
+  return [...ids];
 }
 
 function isOfficialClub(row: unknown): row is OfficialClub {

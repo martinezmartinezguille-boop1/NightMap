@@ -45,6 +45,28 @@ export async function createProCheckout(clubId: string, clubName: string, origin
   return session.url;
 }
 
+export async function activeSubscriptionClubIds(): Promise<string[]> {
+  const stripe = stripeClient();
+  if (!stripe) return [];
+  const ids: string[] = [];
+  let startingAfter = "";
+  for (let page = 0; page < 5; page += 1) {
+    const list = await stripe.subscriptions.list({
+      status: "active",
+      limit: 100,
+      ...(startingAfter ? { starting_after: startingAfter } : {}),
+    });
+    for (const subscription of list.data) {
+      const id = subscription.metadata?.["discotecaId"] ?? subscription.metadata?.["clubId"] ?? "";
+      if (id) ids.push(id);
+    }
+    const last = list.data[list.data.length - 1];
+    if (!list.has_more || !last) break;
+    startingAfter = last.id;
+  }
+  return ids;
+}
+
 export async function paidClubId(sessionId: string): Promise<string | null> {
   const stripe = stripeClient();
   if (!stripe) return null;

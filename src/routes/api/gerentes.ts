@@ -25,7 +25,10 @@ export const Route = createFileRoute("/api/gerentes")({
         const club = officialClubById(discotecaId);
         if (!club) return Response.json({ error: "Esa sala no está en la base oficial." }, { status: 404 });
 
-        const saved = assignManager({ email, discotecaId: club.id, role });
+        const saved = await assignManager({ email, discotecaId: club.id, role });
+        if (!saved) {
+          return Response.json({ error: "No se ha podido guardar el vínculo en la base de datos." }, { status: 503 });
+        }
         await stampManagerOnAccount(saved);
         return Response.json({ email: saved.email, discotecaId: saved.discotecaId });
       },

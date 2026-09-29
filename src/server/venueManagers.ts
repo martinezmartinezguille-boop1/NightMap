@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { officialClubById, officialClubs, type OfficialClub } from "@/lib/clubPlans";
 import { isManagerRole } from "@/lib/managerRole";
+import { listManagers as listStoredManagers, saveManager } from "@/server/proRecords";
 import type { SessionUser } from "@/server/sessionUser";
 
 export interface VenueManager {
@@ -40,19 +41,21 @@ export function listManagers(): VenueManager[] {
   return [...byEmail.values()];
 }
 
-export function assignManager(entry: VenueManager): VenueManager {
+export async function assignManager(entry: VenueManager): Promise<VenueManager | null> {
   const next: VenueManager = {
     email: entry.email.trim().toLowerCase(),
     discotecaId: entry.discotecaId,
     role: entry.role.trim(),
   };
+  const stored = await saveManager(next);
+  if (!stored) return null;
   memory.set(next.email, next);
   const rows = listManagers().filter((row) => row.email !== next.email);
   rows.push(next);
   try {
     writeFileSync(FILE, `${JSON.stringify(rows, null, 2)}\n`, "utf8");
   } catch {
-    // En Vercel el archivo no se conserva. La sesión queda marcada en app_metadata cuando hay clave de servicio.
+    // La copia en disco es local. La vinculación que cuenta está firmada en la base de datos.
   }
   return next;
 }
@@ -79,7 +82,13 @@ export async function stampManagerOnAccount(entry: VenueManager): Promise<void> 
   }
 }
 
-export function resolveManagedClub(user: SessionUser): OfficialClub | null {
+export async function resolveManagedClub(user: SessionUser): Promise<OfficialClub | null> {
+  const stored = (await listStoredManagers()).find((row) => row.email === user.email && isManagerRole(row.role));
+  if (stored) {
+    const fromDatabase = officialClubById(stored.discotecaId);
+    if (fromDatabase) return fromDatabase;
+  }
+
   const metaRole = typeof user.appMetadata["role"] === "string" ? user.appMetadata["role"] : "";
   const metaId = typeof user.appMetadata["discotecaId"] === "string" ? user.appMetadata["discotecaId"] : "";
   if (metaId && isManagerRole(metaRole)) {
@@ -87,13 +96,11 @@ export function resolveManagedClub(user: SessionUser): OfficialClub | null {
     if (fromSession) return fromSession;
   }
 
-  const stored = listManagers().find((row) => row.email === user.email && isManagerRole(row.role));
-  if (stored) {
-    const fromStore = officialClubById(stored.discotecaId);
-    if (fromStore) return fromStore;
+  const local = listManagers().find((row) => row.email === user.email && isManagerRole(row.role));
+  if (local) {
+    const fromFile = officialClubById(local.discotecaId);
+    if (fromFile) return fromFile;
   }
 
-  return (
-    officialClubs.find((club) => club.gerenteEmail?.trim().toLowerCase() === user.email) ?? null
-  );
+  return officialClubs.find((club) => club.gerenteEmail?.trim().toLowerCase() === user.email) ?? null;
 }

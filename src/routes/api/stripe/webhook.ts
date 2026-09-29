@@ -25,13 +25,16 @@ export const Route = createFileRoute("/api/stripe/webhook")({
         if (event.type === "checkout.session.completed") {
           const session = event.data.object;
           const clubId = session.metadata?.["discotecaId"] ?? session.metadata?.["clubId"] ?? session.client_reference_id ?? "";
-          if (clubId) setClubPlan(clubId, true);
+          if (clubId) {
+            const club = await setClubPlan(clubId, true);
+            if (!club) return Response.json({ error: "No se ha guardado la sala." }, { status: 500 });
+          }
         }
 
         if (event.type === "customer.subscription.deleted") {
           const subscription = event.data.object;
           const clubId = subscription.metadata?.["discotecaId"] ?? subscription.metadata?.["clubId"] ?? "";
-          if (clubId) setClubPlan(clubId, false);
+          if (clubId) await setClubPlan(clubId, false);
         }
 
         return Response.json({ received: true });
