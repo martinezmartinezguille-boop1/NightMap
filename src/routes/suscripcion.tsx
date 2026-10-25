@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { LoginScreen } from "@/components/LoginScreen";
-import { startProCheckout } from "@/lib/startProCheckout";
 import { useManagedClub } from "@/lib/useManagedClub";
 import { useProClubs } from "@/lib/useProClubs";
+import { startProCheckout } from "@/lib/startProCheckout";
 import { useSession } from "@/lib/useSession";
 
 export const Route = createFileRoute("/suscripcion")({
@@ -17,7 +17,7 @@ function SubscribePage() {
   const { session, ready } = useSession();
   const managed = useManagedClub(session?.access_token);
   const { extraIds } = useProClubs();
-  const [pending, setPending] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const alreadyPro = managed ? managed.suscripcionActiva || extraIds.has(managed.discotecaId) : false;
 
@@ -41,13 +41,14 @@ function SubscribePage() {
             <p className="text-xs font-semibold uppercase tracking-wide text-[#FFD700]">{managed.ciudad}</p>
             <h2 className="mt-1 font-display text-2xl font-bold">{managed.nombre}</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              El pago se aplica a esta sala. No hace falta elegirla.
+              El pago activa el pin dorado de esta sala. No hace falta elegirla.
             </p>
             <button
               type="button"
-              disabled={pending || alreadyPro}
+              disabled={alreadyPro || busy}
               onClick={() => {
-                setPending(true);
+                if (!session.access_token) return;
+                setBusy(true);
                 setError("");
                 startProCheckout(session.access_token)
                   .then((url) => {
@@ -55,14 +56,18 @@ function SubscribePage() {
                   })
                   .catch((reason: unknown) => {
                     setError(reason instanceof Error ? reason.message : "No se ha podido empezar el pago.");
-                    setPending(false);
+                    setBusy(false);
                   });
               }}
               className="mt-5 w-full rounded-xl border border-[#FFD700] bg-[#FFD700] px-4 py-3 font-display text-sm font-bold text-black disabled:opacity-60"
             >
-              {alreadyPro ? "Tu local ya es Pro" : pending ? "Abriendo el pago…" : "✨ Haz tu local Pro (10€/mes)"}
+              {alreadyPro ? "Tu local ya es Pro" : busy ? "Abriendo el pago…" : "✨ Haz tu local Pro (10€/mes)"}
             </button>
-            {error && <p className="mt-3 text-sm text-red-300">{error}</p>}
+            {error && (
+              <p role="alert" className="mt-3 text-center text-xs text-[#FFD700]">
+                {error}
+              </p>
+            )}
           </section>
         )}
       </div>

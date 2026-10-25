@@ -2,6 +2,7 @@ import { type FormEvent, useState } from "react";
 import type { AuthError } from "@supabase/supabase-js";
 import { siteUrl } from "@/lib/siteUrl";
 import { supabase } from "@/lib/supabase";
+import { useSession } from "@/lib/useSession";
 
 type AuthMode = "login" | "signup";
 
@@ -19,12 +20,16 @@ function authError(message: string, mode: AuthMode): string {
     return "El acceso con Google no está activado en el proyecto.";
   }
   if (text.includes("invalid") && text.includes("email")) return "Ese correo no es válido.";
+  if (text.includes("failed to fetch") || text.includes("network") || text.includes("enotfound")) {
+    return "No hay conexión con Supabase. El proyecto guardado ya no existe.";
+  }
   return mode === "signup"
     ? "No se ha podido crear la cuenta. Inténtalo de nuevo."
     : "No se ha podido iniciar sesión. Inténtalo de nuevo.";
 }
 
 export function LoginScreen() {
+  const { authDown } = useSession();
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -135,6 +140,11 @@ export function LoginScreen() {
           <h1 id="login-title" className="login-title">
             {isSignup ? "Crea tu cuenta" : "Entra en el mapa"}
           </h1>
+          {authDown && (
+            <p className="login-copy">
+              El acceso no puede completarse: el proyecto de Supabase configurado ya no responde.
+            </p>
+          )}
           <p className="login-copy">
             {isSignup
               ? "Regístrate con Google o con tu correo."

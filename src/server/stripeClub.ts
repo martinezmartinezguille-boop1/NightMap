@@ -10,6 +10,10 @@ export function stripeWebhookSecret(): string {
   return process.env["STRIPE_WEBHOOK_SECRET"] ?? "";
 }
 
+export function stripePriceId(): string {
+  return process.env["STRIPE_PRICE_ID"] ?? "";
+}
+
 export function stripeClient(): Stripe | null {
   const key = stripeSecret();
   if (!key) return null;
@@ -19,24 +23,27 @@ export function stripeClient(): Stripe | null {
 export async function createProCheckout(clubId: string, clubName: string, origin: string): Promise<string> {
   const stripe = stripeClient();
   if (!stripe) throw new Error("Falta STRIPE_SECRET_KEY");
+  const priceId = stripePriceId();
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     client_reference_id: clubId,
     metadata: { discotecaId: clubId, clubId },
     subscription_data: { metadata: { discotecaId: clubId, clubId } },
     line_items: [
-      {
-        quantity: 1,
-        price_data: {
-          currency: "eur",
-          unit_amount: PRO_AMOUNT_CENTS,
-          recurring: { interval: "month" },
-          product_data: {
-            name: `NightMap Pro · ${clubName}`,
-            description: "Pin dorado en el mapa y avisos destacados en el tablón.",
+      priceId
+        ? { quantity: 1, price: priceId }
+        : {
+            quantity: 1,
+            price_data: {
+              currency: "eur",
+              unit_amount: PRO_AMOUNT_CENTS,
+              recurring: { interval: "month" },
+              product_data: {
+                name: `NightMap Pro · ${clubName}`,
+                description: "Pin dorado en el mapa y avisos destacados en el tablón.",
+              },
+            },
           },
-        },
-      },
     ],
     success_url: `${origin}/suscripcion/exito?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/`,

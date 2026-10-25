@@ -34,3 +34,5 @@ dist-ssr
 *.sln
 *.sw?
 gerentes.json
+campana-entradas-enviados.json
+correos-encontrados.json

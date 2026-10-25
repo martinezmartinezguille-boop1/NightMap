@@ -6,15 +6,25 @@ import { supabase } from "@/lib/supabase";
 export function useSession() {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
+  const [authDown, setAuthDown] = useState(false);
 
   useEffect(() => {
     let active = true;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      setSession(data.session);
-      setReady(true);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!active) return;
+        setSession(data.session);
+        setAuthDown(false);
+        setReady(true);
+      })
+      .catch(() => {
+        if (!active) return;
+        setSession(null);
+        setAuthDown(true);
+        setReady(true);
+      });
 
     const { data } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next);
@@ -27,5 +37,5 @@ export function useSession() {
     };
   }, []);
 
-  return { session, ready };
+  return { session, ready, authDown };
 }

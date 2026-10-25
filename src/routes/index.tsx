@@ -83,8 +83,27 @@ function Index() {
   const [passportOpen, setPassportOpen] = useState(false);
   const [dealsOpen, setDealsOpen] = useState(false);
   const [squadOpen, setSquadOpen] = useState(false);
+  const [pendingClaims, setPendingClaims] = useState(0);
   const favorites = useFavorites();
   const { extraIds } = useProClubs();
+
+  useEffect(() => {
+    if (!session?.access_token || !isAdmin(session.user.email)) return;
+    let active = true;
+    fetch("/api/reclamos", { headers: { authorization: `Bearer ${session.access_token}` } })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: unknown) => {
+        if (!active || !body || typeof body !== "object" || !("reclamos" in body) || !Array.isArray(body.reclamos)) return;
+        const pending = body.reclamos.filter(
+          (row) => !!row && typeof row === "object" && "status" in row && row.status === "pending",
+        ).length;
+        setPendingClaims(pending);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [session]);
 
   useEffect(() => {
     if (!session) return;
@@ -327,6 +346,11 @@ function Index() {
                 className="rounded-xl border border-border panel-blur px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
               >
                 Solicitudes
+                {pendingClaims > 0 && (
+                  <span className="ml-1.5 rounded-full bg-[#FFD700] px-1.5 py-0.5 text-[10px] font-bold text-black">
+                    {pendingClaims}
+                  </span>
+                )}
               </Link>
             )}
           </div>

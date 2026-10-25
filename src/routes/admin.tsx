@@ -34,17 +34,26 @@ function AdminClaims() {
   const { session, ready } = useSession();
   const [claims, setClaims] = useState<StoredClaim[]>([]);
   const [notice, setNotice] = useState("");
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     if (!session?.access_token) return;
     let active = true;
     fetch("/api/reclamos", { headers: { authorization: `Bearer ${session.access_token}` } })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((body: unknown) => {
+      .then(async (response) => {
+        const body: unknown = await response.json().catch(() => null);
+        if (!response.ok) {
+          const message = body && typeof body === "object" && "error" in body && typeof body.error === "string" ? body.error : "";
+          if (active) setLoadError(message || "No se han podido cargar las solicitudes.");
+          return;
+        }
         if (!active || !body || typeof body !== "object" || !("reclamos" in body) || !Array.isArray(body.reclamos)) return;
+        setLoadError("");
         setClaims(body.reclamos.filter((row): row is StoredClaim => !!row && typeof row === "object" && "id" in row));
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (active) setLoadError("No se han podido cargar las solicitudes.");
+      });
     return () => {
       active = false;
     };
@@ -99,8 +108,9 @@ function AdminClaims() {
           </Link>
         </div>
         {notice && <p className="mt-4 text-sm text-[#FFD700]">{notice}</p>}
+        {loadError && <p className="mt-4 text-sm text-red-300">{loadError}</p>}
 
-        {claims.length === 0 ? (
+        {loadError ? null : claims.length === 0 ? (
           <p className="mt-8 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
             Todavía no hay solicitudes.
           </p>

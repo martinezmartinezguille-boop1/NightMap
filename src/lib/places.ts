@@ -379,23 +379,25 @@ function osmFeatureToPlace(feature: unknown): Place | null {
   return place;
 }
 
-/** Descarga `/osm_spain.geojson` y se queda con los puntos que tienen nombre. */
-export async function fetchOsmPlaces(url = OSM_GEOJSON_URL): Promise<Place[]> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Error ${response.status} al leer el GeoJSON de locales`);
-  }
-  const body: unknown = await response.json();
+export function placesFromOsmGeoJson(body: unknown): Place[] {
   if (!body || typeof body !== "object" || !("features" in body) || !Array.isArray(body.features)) {
     throw new Error("El GeoJSON no trae una lista de features.");
   }
-
   const places: Place[] = [];
   for (const feature of body.features) {
     const place = osmFeatureToPlace(feature);
     if (place) places.push(place);
   }
   return places;
+}
+
+/** Descarga `/osm_spain.geojson` y se queda con los puntos que tienen nombre. */
+export async function fetchOsmPlaces(url = OSM_GEOJSON_URL): Promise<Place[]> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Error ${response.status} al leer el GeoJSON de locales`);
+  }
+  return placesFromOsmGeoJson(await response.json());
 }
 
 function rememberVenue(index: Map<string, Set<string>>, place: Place) {

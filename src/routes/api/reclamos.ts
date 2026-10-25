@@ -19,6 +19,9 @@ export const Route = createFileRoute("/api/reclamos")({
         if (!user || !isAdmin(user.email)) {
           return Response.json({ error: "Solo el equipo de NightMap puede ver las solicitudes." }, { status: 403 });
         }
+        if (!recordsReady()) {
+          return Response.json({ error: "Falta NIGHTMAP_LINK_SECRET en el servidor." }, { status: 503 });
+        }
         return Response.json({ reclamos: await listClaims() });
       },
       POST: async ({ request }) => {

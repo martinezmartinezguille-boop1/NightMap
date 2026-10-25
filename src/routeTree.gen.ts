@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as SuscripcionRouteImport } from './routes/suscripcion'
 import { Route as ApiGerentesRouteImport } from './routes/api/gerentes'
 import { Route as ApiReclamosRouteImport } from './routes/api/reclamos'
+import { Route as ApiWebhookRouteImport } from './routes/api/webhook'
 import { Route as SuscripcionExitoRouteImport } from './routes/suscripcion_.exito'
 import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
 import { Route as ApiSuscripcionActivarRouteImport } from './routes/api/suscripcion/activar'
@@ -44,6 +45,11 @@ const ApiGerentesRoute = ApiGerentesRouteImport.update({
 const ApiReclamosRoute = ApiReclamosRouteImport.update({
   id: '/api/reclamos',
   path: '/api/reclamos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWebhookRoute = ApiWebhookRouteImport.update({
+  id: '/api/webhook',
+  path: '/api/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SuscripcionExitoRoute = SuscripcionExitoRouteImport.update({
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/suscripcion': typeof SuscripcionRoute
   '/api/gerentes': typeof ApiGerentesRoute
   '/api/reclamos': typeof ApiReclamosRoute
+  '/api/webhook': typeof ApiWebhookRoute
   '/suscripcion/exito': typeof SuscripcionExitoRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/api/suscripcion/activar': typeof ApiSuscripcionActivarRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/suscripcion': typeof SuscripcionRoute
   '/api/gerentes': typeof ApiGerentesRoute
   '/api/reclamos': typeof ApiReclamosRoute
+  '/api/webhook': typeof ApiWebhookRoute
   '/suscripcion/exito': typeof SuscripcionExitoRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/api/suscripcion/activar': typeof ApiSuscripcionActivarRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/suscripcion': typeof SuscripcionRoute
   '/api/gerentes': typeof ApiGerentesRoute
   '/api/reclamos': typeof ApiReclamosRoute
+  '/api/webhook': typeof ApiWebhookRoute
   '/suscripcion_/exito': typeof SuscripcionExitoRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/api/suscripcion/activar': typeof ApiSuscripcionActivarRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/suscripcion'
     | '/api/gerentes'
     | '/api/reclamos'
+    | '/api/webhook'
     | '/suscripcion/exito'
     | '/api/stripe/webhook'
     | '/api/suscripcion/activar'
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/suscripcion'
     | '/api/gerentes'
     | '/api/reclamos'
+    | '/api/webhook'
     | '/suscripcion/exito'
     | '/api/stripe/webhook'
     | '/api/suscripcion/activar'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/suscripcion'
     | '/api/gerentes'
     | '/api/reclamos'
+    | '/api/webhook'
     | '/suscripcion_/exito'
     | '/api/stripe/webhook'
     | '/api/suscripcion/activar'
@@ -165,6 +177,7 @@ export interface RootRouteChildren {
   SuscripcionRoute: typeof SuscripcionRoute
   ApiGerentesRoute: typeof ApiGerentesRoute
   ApiReclamosRoute: typeof ApiReclamosRoute
+  ApiWebhookRoute: typeof ApiWebhookRoute
   SuscripcionExitoRoute: typeof SuscripcionExitoRoute
   ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
   ApiSuscripcionActivarRoute: typeof ApiSuscripcionActivarRoute
@@ -208,6 +221,13 @@ declare module '@tanstack/react-router' {
       path: '/api/reclamos'
       fullPath: '/api/reclamos'
       preLoaderRoute: typeof ApiReclamosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhook': {
+      id: '/api/webhook'
+      path: '/api/webhook'
+      fullPath: '/api/webhook'
+      preLoaderRoute: typeof ApiWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/suscripcion_/exito': {
@@ -261,6 +281,7 @@ const rootRouteChildren: RootRouteChildren = {
   SuscripcionRoute: SuscripcionRoute,
   ApiGerentesRoute: ApiGerentesRoute,
   ApiReclamosRoute: ApiReclamosRoute,
+  ApiWebhookRoute: ApiWebhookRoute,
   SuscripcionExitoRoute: SuscripcionExitoRoute,
   ApiStripeWebhookRoute: ApiStripeWebhookRoute,
   ApiSuscripcionActivarRoute: ApiSuscripcionActivarRoute,
